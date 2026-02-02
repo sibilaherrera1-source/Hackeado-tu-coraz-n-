@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Matrix Heart: System Breach</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #000;
+            overflow: hidden;
+            font-family: 'Courier New', monospace;
+        }
+
+        canvas {
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+
+        /* Contenedor central para el texto */
+        .container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10;
+            text-align: center;
+            pointer-events: none; /* Dejar pasar clics si fuera necesario */
+        }
+
+        /* Efecto GLITCH (Fallo de sistema) para el texto */
+        .glitch {
+            font-size: 80px;
+            font-weight: bold;
+            color: #fff;
+            position: relative;
+            text-shadow: 2px 2px 0px #ff00ff, -2px -2px 0px #00ff00;
+            animation: glitch-anim 2s infinite linear alternate-reverse;
+        }
+
+        /* Capas duplicadas para el efecto de rasgado */
+        .glitch::before, .glitch::after {
+            content: attr(data-text);
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000; /* Fondo negro para ocultar el original */
+            overflow: hidden;
+        }
+
+        .glitch::before {
+            left: 2px;
+            text-shadow: -1px 0 #ff00c1;
+            clip: rect(24px, 550px, 90px, 0);
+            animation: glitch-anim-2 3s infinite linear alternate-reverse;
+        }
+
+        .glitch::after {
+            left: -2px;
+            text-shadow: -1px 0 #00fff9;
+            clip: rect(85px, 550px, 140px, 0);
+            animation: glitch-anim-2 2s infinite linear alternate-reverse;
+        }
+
+        /* Animaciones CSS Keyframes */
+        @keyframes glitch-anim {
+            0% { text-shadow: 2px 2px 0px #ff00c1, -2px -2px 0px #00fff9; transform: translate(0); }
+            20% { text-shadow: -2px 2px 0px #ff00c1, 2px -2px 0px #00fff9; transform: translate(-2px, 2px); }
+            40% { text-shadow: 2px -2px 0px #ff00c1, -2px 2px 0px #00fff9; transform: translate(2px, -2px); }
+            60% { text-shadow: -2px -2px 0px #ff00c1, 2px 2px 0px #00fff9; transform: translate(-2px, -2px); }
+            80% { text-shadow: 2px 2px 0px #ff00c1, -2px -2px 0px #00fff9; transform: translate(2px, 2px); }
+            100% { text-shadow: -2px -2px 0px #ff00c1, 2px 2px 0px #00fff9; transform: translate(0); }
+        }
+
+        @keyframes glitch-anim-2 {
+            0% { clip: rect(10px, 9999px, 30px, 0); }
+            20% { clip: rect(40px, 9999px, 60px, 0); }
+            40% { clip: rect(80px, 9999px, 100px, 0); }
+            60% { clip: rect(10px, 9999px, 80px, 0); }
+            80% { clip: rect(50px, 9999px, 90px, 0); }
+            100% { clip: rect(20px, 9999px, 60px, 0); }
+        }
+
+        .subtext {
+            color: #0F0;
+            font-size: 14px;
+            letter-spacing: 5px;
+            margin-top: 10px;
+            opacity: 0.8;
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+    </style>
+</head>
+<body>
+
+    <canvas id="matrixCanvas"></canvas>
+    
+    <div class="container">
+        <div class="glitch" data-text="I LOVE YOU">I LOVE YOU</div>
+        <div class="subtext">SYSTEM HACKED // ACCESS GRANTED</div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('matrixCanvas');
+        const ctx = canvas.getContext('2d');
+
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        // Configuración
+        const katakana = 'アァカサタナハマヤャラワガザダバパイィキシチニヒミリヰギジヂビピウゥクスツヌフムユュルグズブヅプエェケセテネヘメレヱゲゼデベペオォコソトノホモヨョロヲゴゾドボポヴッン';
+        const latin = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        const nums = '0123456789';
+        const hearts = '❤♥'; // Caracteres especiales para dentro del corazón
+        
+        const alphabet = katakana + latin + nums;
+
+        const fontSize = 14;
+        const columns = canvas.width / fontSize;
+        
+        // Array para las gotas (posición Y de cada columna)
+        const drops = [];
+        for( let x = 0; x < columns; x++ ) {
+            drops[x] = 1;
+        }
+
+        // Función matemática para determinar si un punto (x,y) está dentro de un corazón
+        // Fórmula: (x^2 + y^2 - 1)^3 - x^2 * y^3 <= 0
+        function isInsideHeart(x, y) {
+            // 1. Normalizar coordenadas: Mover (0,0) al centro de la pantalla
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2; // Ajustamos un poco arriba del texto
+
+            // 2. Escala: Convertir pixeles a unidades pequeñas para la fórmula
+            // El factor 'scale' determina el tamaño del corazón
+            const scale = Math.min(canvas.width, canvas.height) / 400; 
+            
+            let nx = (x - centerX) / (15 * scale);
+            let ny = (centerY - y) / (15 * scale); // Invertir Y porque en Canvas Y crece hacia abajo
+
+            // 3. Aplicar la fórmula del corazón
+            // (x² + y² - 1)³ - x²y³ <= 0
+            let a = nx * nx + ny * ny - 1;
+            return (a * a * a - nx * nx * ny * ny * ny) <= 0;
+        }
+
+        function draw() {
+            // Fondo semitransparente para el rastro (más oscuro que antes para mayor contraste)
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.08)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.font = fontSize + 'px monospace';
+
+            for(let i = 0; i < drops.length; i++) {
+                // Coordenadas actuales de la gota
+                const x = i * fontSize;
+                const y = drops[i] * fontSize;
+
+                // Verificamos si esta posición está "dentro" del corazón matemático
+                const insideHeart = isInsideHeart(x, y);
+
+                // Lógica de Renderizado Condicional
+                if (insideHeart) {
+                    // SI ESTÁ DENTRO DEL CORAZÓN:
+                    // Color Rojo/Rosa Neón
+                    ctx.fillStyle = '#ff0055'; 
+                    // Usar caracteres de corazón o texto diferente
+                    ctx.shadowBlur = 15; // Mucho brillo
+                    ctx.shadowColor = '#ff0055';
+                    // A veces dibujar un corazón, a veces una letra
+                    const char = Math.random() > 0.8 ? hearts.charAt(Math.floor(Math.random() * hearts.length)) : latin.charAt(Math.floor(Math.random() * latin.length));
+                    ctx.fillText(char, x, y);
+                } else {
+                    // SI ESTÁ FUERA (Matrix Normal):
+                    // Color Verde Matrix
+                    ctx.fillStyle = '#0F0';
+                    ctx.shadowBlur = 0; // Sin brillo costoso para el fondo
+                    ctx.shadowColor = 'transparent'; // Limpiar sombra
+                    
+                    const text = alphabet.charAt(Math.floor(Math.random() * alphabet.length));
+                    ctx.fillText(text, x, y);
+                }
+
+                // Reiniciar la gota al llegar al fondo
+                // Aleatoriedad para que no caigan todas juntas
+                if(drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+                    drops[i] = 0;
+                }
+
+                // Mover gota
+                drops[i]++;
+            }
+        }
+
+        // Loop de animación
+        // Usamos requestAnimationFrame para mayor fluidez, pero controlamos FPS con setInterval
+        // para mantener el "look" retro de Matrix (un poco entrecortado es mejor)
+        setInterval(draw, 35);
+
+        // Responsive
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            // Recalcular columnas al redimensionar
+            const newColumns = canvas.width / fontSize;
+            // Ajustar array de gotas
+            if (newColumns > drops.length) {
+                for (let i = drops.length; i < newColumns; i++) drops[i] = 1;
+            }
+        });
+    </script>
+</body>
+</html>
